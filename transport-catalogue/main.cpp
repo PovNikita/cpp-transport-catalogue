@@ -10,7 +10,7 @@ using namespace std;
 int main() {
 
     TestTransportCatalogue();
-    TransportCatalogue catalogue;
+    transport_catalogue::TransportCatalogue catalogue;
 
     int base_request_count;
     cin >> base_request_count >> ws;

@@ -5,7 +5,5 @@
 
 #include "transport_catalogue.h"
 
-using namespace tr_cgue;
-
-void ParseAndPrintStat(const TransportCatalogue& tansport_catalogue, std::string_view request,
+void ParseAndPrintStat(const transport_catalogue::TransportCatalogue& tansport_catalogue, std::string_view request,
                        std::ostream& output);

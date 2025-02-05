@@ -6,8 +6,6 @@
 #include "geo.h"
 #include "transport_catalogue.h"
 
-using namespace tr_cgue;
-
 struct CommandDescription {
     // Определяет, задана ли команда (поле command непустое)
     explicit operator bool() const {
@@ -33,7 +31,7 @@ public:
     /**
      * Наполняет данными транспортный справочник, используя команды из commands_
      */
-    void ApplyCommands(TransportCatalogue& catalogue);
+    void ApplyCommands(transport_catalogue::TransportCatalogue& catalogue);
 
 private:
     std::vector<CommandDescription> commands_;

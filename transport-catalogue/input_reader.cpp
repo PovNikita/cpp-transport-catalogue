@@ -5,6 +5,8 @@
 #include <iterator>
 #include <queue>
 
+using namespace transport_catalogue;
+
 /**
  * Парсит строку вида "10.123,  -30.1837" и возвращает пару координат (широта, долгота)
  */
