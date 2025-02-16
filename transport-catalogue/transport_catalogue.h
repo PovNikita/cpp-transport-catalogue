@@ -16,7 +16,6 @@ namespace transport_catalogue{
 		std::string stop_name_ = "";
 		Coordinates stop_coordinates_;
 		std::unordered_set<std::string_view> routes_ = {};
-
 		bool operator==(const Stop &rhs)
 		{
 			return (this->stop_name_ == rhs.stop_name_) &&
@@ -54,6 +53,7 @@ namespace transport_catalogue{
 		size_t number_of_stops_ = 0;
 		size_t number_of_uniq_stops_ = 0;
 		double route_length_ = 0.0;
+		double curvature = 1.0;
 
 		operator bool()
 		{
@@ -67,6 +67,20 @@ namespace transport_catalogue{
 		std::vector<std::string_view> route_names_;
 	};
 	
+	class TransportCatalogueMap	{
+		public:
+		void AddNode(std::string_view start_stop, std::string_view end_stop, double distance);
+		std::optional<double> GetDistance(std::string_view start_stop, std::string_view end_stop) const;
+		private:
+
+		struct Node
+		{
+			bool is_connected = false;
+			double distance = 0;
+		};
+
+		std::unordered_map<std::string_view, std::unordered_map<std::string_view, Node>> adMatrix_;
+	};
 
 	class TransportCatalogue {
 		public:
@@ -76,6 +90,7 @@ namespace transport_catalogue{
 		template <typename ForwardIt1, typename ForwardIt2>
 		const Bus& AddRoute(std::string_view route_name, ForwardIt1 first_stop_name, ForwardIt2 last_stop_name);
 		const Bus* SearchRoute(std::string_view route_name) const;
+		void AddDistance(std::string_view start_stop, std::string_view end_stop, double distance);
 		std::optional<RouteInfo> GetInfoAboutRoute(std::string_view route_name) const;
 		std::optional<StopInfo> GetInfoAboutBusesViaStop(std::string_view stop_name) const;
 		private:
@@ -83,8 +98,7 @@ namespace transport_catalogue{
 		std::unordered_map<std::string_view, Stop&> stopname_to_stop_;
 		std::deque<Bus> buses_;
 		std::unordered_map<std::string_view, Bus&> busname_to_bus_;
-		
-
+		TransportCatalogueMap map_;
 	};
 
 	template <typename ForwardIt1, typename ForwardIt2>
@@ -106,5 +120,7 @@ namespace transport_catalogue{
 		}
 		return AddRoute(bus);
 	}
+
+
 
 };

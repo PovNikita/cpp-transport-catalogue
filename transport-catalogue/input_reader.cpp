@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iterator>
 #include <queue>
+#include <utility>
 
 using namespace transport_catalogue;
 
@@ -105,21 +106,38 @@ void InputReader::ParseLine(std::string_view line) {
     }
 }
 
-void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) {
+void InputReader::ApplyCommands(TransportCatalogue& catalogue) {
     using namespace std;
+    queue<std::pair<std::string_view, std::unordered_map<std::string, double>>> distance_to_stop;
     queue<CommandDescription*> routes;
     for(auto &command : commands_)
     {
         if(command.command == "Stop"s)
         {
-            Coordinates cor = GetCoordinatesFromStrig(command.description);
-            Stop bus_stop = {command.id, cor};
+            StopRequest req;
+            if(command.description.find("to") != command.description.npos)
+            {
+                req = ParseStopRequest(command.description);
+                distance_to_stop.push({command.id, std::move(req.distance_to_stop_)});
+            }
+            else{
+                req.cor_ = GetCoordinatesFromString(command.description);
+            }
+            Stop bus_stop = {command.id, req.cor_};
             catalogue.AddStop(bus_stop);
         }
         else if(command.command == "Bus"s)
         {
             routes.push(&command);
         }
+    }
+    while(!distance_to_stop.empty())
+    {
+        for(auto [end_stop, distance] : distance_to_stop.front().second)
+        {
+            catalogue.AddDistance(distance_to_stop.front().first, end_stop, distance);
+        }
+        distance_to_stop.pop();
     }
     while(!routes.empty())
     {
@@ -130,7 +148,44 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
     }
 }
 
-Coordinates GetCoordinatesFromStrig(const std::string &string)
+StopRequest ParseStopRequest(const std::string &request)
+{
+    using namespace std::literals;
+    Coordinates cor;
+    size_t prev_pos = request.find(',');
+    cor.lat = std::stod(std::string(request.begin(), request.begin() + prev_pos));
+    size_t pos = request.find(',', prev_pos + 1);
+    cor.lng = std::stod(std::string(request.begin() + prev_pos + 1, request.begin() + pos));
+    std::unordered_map<std::string, double> distance_to_stop;
+    prev_pos = pos;
+    pos = request.find(',', prev_pos + 1);
+
+    size_t m_pos = 0;
+    size_t to_pos = 0;
+    double distance = 0.0;
+    std::string stop_name = ""s;
+
+    while(pos != request.npos)
+    {
+        m_pos = request.find('m', prev_pos + 1);
+        to_pos = request.find("to", m_pos);
+        distance = std::stod(std::string(request.begin() + prev_pos + 1, request.begin() + m_pos));
+        stop_name = std::string(request.begin() + to_pos + 3, request.begin() + pos);
+        distance_to_stop[stop_name] = distance;
+        prev_pos = pos;
+        pos = request.find(',', prev_pos + 1);
+    }
+
+    m_pos = request.find('m', prev_pos + 1);
+    to_pos = request.find("to", m_pos);
+    distance = std::stod(std::string(request.begin() + prev_pos + 1, request.begin() + m_pos));
+    stop_name = std::string(request.begin() + to_pos + 3, request.end());
+    distance_to_stop[stop_name] = distance;
+
+    return {cor, std::move(distance_to_stop)};
+}
+
+Coordinates GetCoordinatesFromString(const std::string &string)
 {
     Coordinates cor;
     auto pos = string.find(',');
@@ -161,7 +216,11 @@ std::vector<std::string_view> ParseBusDescription(const std::string &description
 
     if(is_circle_route)
     {
-        stop_names.insert(stop_names.end(), stop_names.rbegin() + 1, stop_names.rend());
+        stop_names.reserve(stop_names.size() * 2);
+        for(int i = static_cast<int>(stop_names.size()) - 2; i >= 0; --i)
+        {
+            stop_names.push_back(stop_names.at(i));
+        }
     }
     return stop_names;
 }

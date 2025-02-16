@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+main
+
+#clang-tidy
+*.clang-tidy
+
+#vscode dir
+.vscode/
+
+#gitignore
+.gitignore
