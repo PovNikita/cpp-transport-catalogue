@@ -68,12 +68,12 @@ namespace transport_catalogue{
 	};
 	
 	class TransportCatalogueMap	{
+		public:
 		struct TypeOfConnection
 		{
 			double distance = 0;
 		};
 
-		public:
 		void AddNode(std::string_view start_stop, std::string_view end_stop, TypeOfConnection node);
 		std::optional<double> GetDistance(std::string_view start_stop, std::string_view end_stop) const;
 		private:
