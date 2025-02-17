@@ -68,18 +68,17 @@ namespace transport_catalogue{
 	};
 	
 	class TransportCatalogueMap	{
-		public:
-		void AddNode(std::string_view start_stop, std::string_view end_stop, double distance);
-		std::optional<double> GetDistance(std::string_view start_stop, std::string_view end_stop) const;
-		private:
-
-		struct Node
+		struct TypeOfConnection
 		{
-			bool is_connected = false;
 			double distance = 0;
 		};
 
-		std::unordered_map<std::string_view, std::unordered_map<std::string_view, Node>> adMatrix_;
+		public:
+		void AddNode(std::string_view start_stop, std::string_view end_stop, TypeOfConnection node);
+		std::optional<double> GetDistance(std::string_view start_stop, std::string_view end_stop) const;
+		private:
+
+		std::unordered_map<std::string_view, std::unordered_map<std::string_view, TypeOfConnection>> adjacency_matrix_;
 	};
 
 	class TransportCatalogue {
@@ -90,7 +89,8 @@ namespace transport_catalogue{
 		template <typename ForwardIt1, typename ForwardIt2>
 		const Bus& AddRoute(std::string_view route_name, ForwardIt1 first_stop_name, ForwardIt2 last_stop_name);
 		const Bus* SearchRoute(std::string_view route_name) const;
-		void AddDistance(std::string_view start_stop, std::string_view end_stop, double distance);
+		void SetDistance(std::string_view start_stop, std::string_view end_stop, double distance);
+		double GetDistance(std::string_view start_stop, std::string_view end_stop) const;
 		std::optional<RouteInfo> GetInfoAboutRoute(std::string_view route_name) const;
 		std::optional<StopInfo> GetInfoAboutBusesViaStop(std::string_view stop_name) const;
 		private:

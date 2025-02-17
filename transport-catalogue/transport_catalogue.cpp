@@ -50,7 +50,7 @@ namespace transport_catalogue{
         return &(it->second);
     }
 
-    void TransportCatalogue::AddDistance(std::string_view start_stop, std::string_view end_stop, double distance)
+    void TransportCatalogue::SetDistance(std::string_view start_stop, std::string_view end_stop, double distance)
     {
         auto it_start_stop = stopname_to_stop_.find(start_stop);
         if(it_start_stop != stopname_to_stop_.end())
@@ -58,9 +58,19 @@ namespace transport_catalogue{
             auto it_end_stop = stopname_to_stop_.find(end_stop);
             if(it_end_stop != stopname_to_stop_.end())
             {
-                map_.AddNode(it_start_stop->first, it_end_stop->first, distance);
+                map_.AddNode(it_start_stop->first, it_end_stop->first, {distance});
             }
         }
+    }
+
+    double TransportCatalogue::GetDistance(std::string_view start_stop, std::string_view end_stop) const
+    {
+        std::optional<double> dis = map_.GetDistance(start_stop, end_stop);
+        if(!dis.has_value())
+        {
+            return ComputeDistance(stopname_to_stop_.at(start_stop).stop_coordinates_, stopname_to_stop_.at(end_stop).stop_coordinates_);
+        }
+        return dis.value();
     }
 
     std::optional<RouteInfo> TransportCatalogue::GetInfoAboutRoute(std::string_view route_name) const
@@ -93,18 +103,8 @@ namespace transport_catalogue{
             double geo_distance = 0.0;
             for(size_t i = 1; i < route->route_.size(); ++i)
             {
-                std::optional<double> distance = map_.GetDistance(route->route_[i-1]->stop_name_, route->route_[i]->stop_name_);
-                if(!distance)
-                {
-                    auto length = ComputeDistance(route->route_[i-1]->stop_coordinates_, route->route_[i]->stop_coordinates_);
-                    info.route_length_ += length;
-                    geo_distance += length;
-                }
-                else
-                {
-                    info.route_length_ += distance.value();
-                    geo_distance += ComputeDistance(route->route_[i-1]->stop_coordinates_, route->route_[i]->stop_coordinates_);
-                }
+                info.route_length_ += GetDistance(route->route_[i-1]->stop_name_, route->route_[i]->stop_name_);
+                geo_distance += ComputeDistance(route->route_[i-1]->stop_coordinates_, route->route_[i]->stop_coordinates_);
             }
             info.curvature = info.route_length_ / geo_distance;
             return std::optional{info};
@@ -130,20 +130,20 @@ namespace transport_catalogue{
 
     }
 
-    void TransportCatalogueMap::AddNode(std::string_view start_stop, std::string_view end_stop, double distance)
+    void TransportCatalogueMap::AddNode(std::string_view start_stop, std::string_view end_stop, TypeOfConnection node)
     {
-        adMatrix_[start_stop][end_stop] = {false, distance};
-        auto it = adMatrix_.find(end_stop);
-        if(it == adMatrix_.end() || it->second.find(start_stop) == it->second.end())
+        adjacency_matrix_[start_stop][end_stop] = node;
+        auto it = adjacency_matrix_.find(end_stop);
+        if(it == adjacency_matrix_.end() || it->second.find(start_stop) == it->second.end())
         {
-            adMatrix_[end_stop][start_stop] = {false, distance};
+            adjacency_matrix_[end_stop][start_stop] = node;
         }
     }
 
     std::optional<double> TransportCatalogueMap::GetDistance(std::string_view start_stop, std::string_view end_stop) const
     {
-        auto it_start = adMatrix_.find(start_stop);
-        if(it_start != adMatrix_.end())
+        auto it_start = adjacency_matrix_.find(start_stop);
+        if(it_start != adjacency_matrix_.end())
         {
             auto it_stop = it_start->second.find(end_stop);
             if(it_stop != it_start->second.end())

@@ -135,7 +135,7 @@ void InputReader::ApplyCommands(TransportCatalogue& catalogue) {
     {
         for(auto [end_stop, distance] : distance_to_stop.front().second)
         {
-            catalogue.AddDistance(distance_to_stop.front().first, end_stop, distance);
+            catalogue.SetDistance(distance_to_stop.front().first, end_stop, distance);
         }
         distance_to_stop.pop();
     }
