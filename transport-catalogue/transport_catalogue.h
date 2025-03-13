@@ -8,65 +8,11 @@
 #include <string_view>
 #include <optional>
 
-#include "geo.h"
+#include "domain.h"
+
 
 namespace transport_catalogue{
-
-	struct Stop{
-		std::string stop_name_ = "";
-		Coordinates stop_coordinates_;
-		std::unordered_set<std::string_view> routes_ = {};
-		bool operator==(const Stop &rhs)
-		{
-			return (this->stop_name_ == rhs.stop_name_) &&
-					(this->stop_coordinates_ == rhs.stop_coordinates_);
-		}
-	};
-
-	class StopHasher{
-		public:
-		size_t operator()(const Stop* bus_stop) const
-		{
-			return std::hash<std::string>{}(bus_stop->stop_name_);
-			
-		}
-	};
-
-	struct StopEqual {
-    	bool operator()(const Stop* lhs, const Stop* rhs) const {
-        	return lhs->stop_name_ == rhs->stop_name_;
-    	}
-	};
-
-	struct Bus{
-		std::string bus_name_ = "";
-		std::vector<Stop*> route_;
-
-		bool operator==(const Bus &rhs)
-		{
-			return this->bus_name_ == rhs.bus_name_ &&
-					this->route_ == rhs.route_;
-		}
-	};
-
-	struct RouteInfo{
-		size_t number_of_stops_ = 0;
-		size_t number_of_uniq_stops_ = 0;
-		double route_length_ = 0.0;
-		double curvature = 1.0;
-
-		operator bool()
-		{
-			return number_of_stops_ != 0;
-		}
-
-	};
-
-	struct StopInfo
-	{
-		std::vector<std::string_view> route_names_;
-	};
-	
+		
 	class TransportCatalogueMap	{
 		public:
 		struct TypeOfConnection
@@ -87,12 +33,13 @@ namespace transport_catalogue{
 		const Stop* SearchStop(std::string_view stop_name) const;
 		const Bus& AddRoute(Bus& bus_route);
 		template <typename ForwardIt1, typename ForwardIt2>
-		const Bus& AddRoute(std::string_view route_name, ForwardIt1 first_stop_name, ForwardIt2 last_stop_name);
+		const Bus& AddRoute(std::string_view route_name, ForwardIt1 first_stop_name, ForwardIt2 last_stop_name, bool is_roundtrip);
 		const Bus* SearchRoute(std::string_view route_name) const;
 		void SetDistance(std::string_view start_stop, std::string_view end_stop, double distance);
 		double GetDistance(std::string_view start_stop, std::string_view end_stop) const;
 		std::optional<RouteInfo> GetInfoAboutRoute(std::string_view route_name) const;
 		std::optional<StopInfo> GetInfoAboutBusesViaStop(std::string_view stop_name) const;
+		const std::deque<Bus>& GetAllRoutes() const;
 		private:
 		std::deque<Stop> stops_;
 		std::unordered_map<std::string_view, Stop&> stopname_to_stop_;
@@ -102,7 +49,7 @@ namespace transport_catalogue{
 	};
 
 	template <typename ForwardIt1, typename ForwardIt2>
-	const Bus& TransportCatalogue::AddRoute(std::string_view route_name, ForwardIt1 first_stop_name, ForwardIt2 last_stop_name)
+	const Bus& TransportCatalogue::AddRoute(std::string_view route_name, ForwardIt1 first_stop_name, ForwardIt2 last_stop_name, bool is_roundtrip)
 	{
 		Bus bus;
 		bus.bus_name_ = route_name;
@@ -118,6 +65,7 @@ namespace transport_catalogue{
 			bus.route_.push_back(bus_stop);
 			++first_stop_name;
 		}
+		bus.is_roundtrip_ = is_roundtrip;
 		return AddRoute(bus);
 	}
 

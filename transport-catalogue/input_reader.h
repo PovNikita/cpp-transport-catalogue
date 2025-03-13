@@ -2,7 +2,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <unordered_map>
 
 #include "geo.h"
 #include "transport_catalogue.h"
@@ -22,12 +21,6 @@ struct CommandDescription {
     std::string description;  // Параметры команды
 };
 
-struct StopRequest
-{
-    Coordinates cor_;
-    std::unordered_map<std::string, double> distance_to_stop_;
-};
-
 class InputReader {
 public:
     /**
@@ -44,8 +37,6 @@ private:
     std::vector<CommandDescription> commands_;
 };
 
-StopRequest ParseStopRequest(const std::string &request);
-
-Coordinates GetCoordinatesFromString(const std::string &string);
+Coordinates GetCoordinatesFromStrig(const std::string &string);
 
 std::vector<std::string_view> ParseBusDescription(const std::string &description);

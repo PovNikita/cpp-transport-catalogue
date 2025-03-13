@@ -154,4 +154,8 @@ namespace transport_catalogue{
         return std::nullopt;
     }
 
+    const std::deque<Bus>& TransportCatalogue::GetAllRoutes() const {
+        return buses_;
+    }
+
 };
