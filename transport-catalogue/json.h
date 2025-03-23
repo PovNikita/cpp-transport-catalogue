@@ -18,18 +18,12 @@ public:
     using runtime_error::runtime_error;
 };
 
-using Node_var = std::variant<std::nullptr_t, int, double, std::string, bool, Array, Dict>;
+using NodeVar = std::variant<std::nullptr_t, int, double, std::string, bool, Array, Dict>;
 
 class Node {
 public:
-
-    Node(Array array);
-    Node(Dict map);
-    Node(int value);
-    Node(std::string value);
-    Node(double value);
-    Node(bool value);
-    Node(std::nullptr_t value);
+    template<typename T>
+    Node(T node) : node_(std::move(node)) {}
     Node() = default;
     
     bool IsInt() const;
@@ -48,10 +42,10 @@ public:
     const Dict& AsMap() const;
     const std::string& AsString() const;
 
-    const Node_var& GetNode() const;
+    const NodeVar& GetNode() const;
 
 private:
-    Node_var node_;
+    NodeVar node_;
 };
 
 bool operator==(const Node& lhs, const Node& rhs);

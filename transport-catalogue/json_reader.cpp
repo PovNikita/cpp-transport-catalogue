@@ -1,6 +1,7 @@
 #include "json_reader.h"
 #include "domain.h"
 #include "map_renderer.h"
+#include "svg.h"
 #include <sstream>
 
 void InputReader::FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, RenderSettings* settings) {
@@ -89,6 +90,34 @@ void InputReader::ParseJsonStatRequests(std::queue<RequestDescription>& requests
     }
 }
 
+svg::Color ConvertNodeToColor(const json::Node& node)
+{
+    using namespace std::literals;
+    if(node.IsString())
+    {
+        return (node.AsString());
+    }
+    else if(node.AsArray().size() == 4)
+    {
+        svg::Rgba color {
+                            static_cast<uint8_t>(node.AsArray().at(0).AsInt()),
+                            static_cast<uint8_t>(node.AsArray().at(1).AsInt()),
+                            static_cast<uint8_t>(node.AsArray().at(2).AsInt()),
+                            (node.AsArray().at(3).AsDouble())
+                        };
+        return (color);
+    }
+    else 
+    {
+        svg::Rgb color {
+            static_cast<uint8_t>(node.AsArray().at(0).AsInt()),
+            static_cast<uint8_t>(node.AsArray().at(1).AsInt()),
+            static_cast<uint8_t>(node.AsArray().at(2).AsInt()),
+            };
+        return (color);
+    }
+}
+
 void InputReader::ParseJsonRenderSettings(RenderSettings* settings) {
     using namespace std::literals;
     auto&& render_set = doc_->GetRoot().AsMap().find("render_settings"s);
@@ -110,58 +139,14 @@ void InputReader::ParseJsonRenderSettings(RenderSettings* settings) {
             settings->stop_label_offset_.push_back(label_offset.AsDouble());
         }
 
-        if(req_dict.AsMap().at("underlayer_color"s).IsString())
-        {
-            settings->underlayer_color_ = req_dict.AsMap().at("underlayer_color"s).AsString();
-        }
-        else if(req_dict.AsMap().at("underlayer_color"s).AsArray().size() == 4)
-        {
-            svg::Rgba color {
-                                static_cast<uint8_t>(req_dict.AsMap().at("underlayer_color"s).AsArray().at(0).AsInt()),
-                                static_cast<uint8_t>(req_dict.AsMap().at("underlayer_color"s).AsArray().at(1).AsInt()),
-                                static_cast<uint8_t>(req_dict.AsMap().at("underlayer_color"s).AsArray().at(2).AsInt()),
-                                (req_dict.AsMap().at("underlayer_color"s).AsArray().at(3).AsDouble())
-                            };
-            settings->underlayer_color_ = color;
-        }
-        else 
-        {
-            svg::Rgb color {
-                static_cast<uint8_t>(req_dict.AsMap().at("underlayer_color"s).AsArray().at(0).AsInt()),
-                static_cast<uint8_t>(req_dict.AsMap().at("underlayer_color"s).AsArray().at(1).AsInt()),
-                static_cast<uint8_t>(req_dict.AsMap().at("underlayer_color"s).AsArray().at(2).AsInt()),
-                };
-            settings->underlayer_color_ = color;
-        }
+        settings->underlayer_color_ = ConvertNodeToColor(req_dict.AsMap().at("underlayer_color"s));
         settings->underlayer_width_ = req_dict.AsMap().at("underlayer_width"s).AsDouble();
 
         settings->color_palette_.reserve(req_dict.AsMap().at("color_palette"s).AsArray().size());
         for(size_t i = 0; i < req_dict.AsMap().at("color_palette"s).AsArray().size(); ++i)
         {
             auto& colo_js = req_dict.AsMap().at("color_palette"s).AsArray().at(i);
-            if(colo_js.IsString())
-            {
-                settings->color_palette_.push_back(colo_js.AsString());
-            }
-            else if(colo_js.AsArray().size() == 4)
-            {
-                svg::Rgba color {
-                    static_cast<uint8_t>(colo_js.AsArray().at(0).AsInt()),
-                    static_cast<uint8_t>(colo_js.AsArray().at(1).AsInt()),
-                    static_cast<uint8_t>(colo_js.AsArray().at(2).AsInt()),
-                    (colo_js.AsArray().at(3).AsDouble())
-                };
-                settings->color_palette_.push_back(color);
-            }
-            else
-            {
-                svg::Rgb color {
-                    static_cast<uint8_t>(colo_js.AsArray().at(0).AsInt()),
-                    static_cast<uint8_t>(colo_js.AsArray().at(1).AsInt()),
-                    static_cast<uint8_t>(colo_js.AsArray().at(2).AsInt()),
-                };
-                settings->color_palette_.push_back(color);
-            }
+            settings->color_palette_.push_back(ConvertNodeToColor(colo_js));
         }
     }
 }
@@ -214,7 +199,7 @@ void StatAnswer::HandleRequests(std::ostream& output, std::queue<RequestDescript
             AnswerMap ans_map;
             map_render::Render render;
             std::stringstream svg_str;
-            DrawMap(svg_str, dynamic_cast<DrawMapInterface*>(&render), catalogue, render_settings);
+            render.DrawMap(svg_str, catalogue.GetAllRoutes(), &render_settings);
             ans_map.request_id_ = requsts.front().id_;
             ans_map.svg_ = svg_str.str();
             AddAnswerToArr(&ans_map);
@@ -280,8 +265,4 @@ void StatAnswer::AddAnswerToArr(AnswerDescription* answer) {
         dict["error_message"s] = static_cast<AnswerError*>(answer)->error_message_;
         arr_.push_back(dict);
     }
-}
-
-void StatAnswer::DrawMap(std::ostream& output, DrawMapInterface* interface, const transport_catalogue::TransportCatalogue& catalogue, RenderSettings& render_settings) {
-    interface->DrawMap(output, catalogue.GetAllRoutes(), &render_settings);
 }

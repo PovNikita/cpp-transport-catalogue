@@ -42,12 +42,6 @@ public:
     std::vector<svg::Color> color_palette_;
 };
 
-class DrawMapInterface {
-public:
-    virtual void DrawMap(std::ostream& output, const std::deque<Bus>& busses, RenderSettings *settings) = 0;
-    virtual ~DrawMapInterface() = default;
-};
-
 class InputInterface {
 public:
     virtual void FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, RenderSettings *settings) = 0;

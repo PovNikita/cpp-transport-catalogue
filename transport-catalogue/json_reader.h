@@ -11,10 +11,11 @@
 #include "geo.h"
 #include "transport_catalogue.h"
 #include "svg.h"
+#include "map_renderer.h"
 
 class ReadCommandDescription {
 public:
-    ReadCommandDescription(std::string type) : type_(type) {}
+    explicit ReadCommandDescription(std::string type) : type_(type) {}
 
     std::string type_ = "";
     std::string name_ = "";
@@ -50,12 +51,12 @@ private:
 
     std::vector<std::unique_ptr<ReadCommandDescription>> stop_comands_;
     std::vector<std::unique_ptr<ReadCommandDescription>> bus_comands_;
-    std::shared_ptr<json::Document> doc_;
+    std::unique_ptr<json::Document> doc_;
 };
 
 class AnswerDescription {
 public:
-    AnswerDescription(std::string type) : type_(type) {}
+    explicit AnswerDescription(std::string type) : type_(type) {}
 
     std::string type_ = "";
     int request_id_ = 0;
@@ -97,6 +98,5 @@ public:
                         const transport_catalogue::TransportCatalogue& catalogue, RenderSettings& render_settings) override;
 private:
     void AddAnswerToArr(AnswerDescription* answer);
-    void DrawMap(std::ostream& output, DrawMapInterface* interface, const transport_catalogue::TransportCatalogue& catalogue, RenderSettings& render_settings);
     json::Array arr_;
 };

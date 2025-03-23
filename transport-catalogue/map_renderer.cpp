@@ -15,7 +15,7 @@ namespace map_render {
         return std::abs(value) < EPSILON;
     }
 
-void Render::DrawMap(std::ostream& output, const std::deque<Bus>& busses, RenderSettings* settings) {
+void Render::DrawMap(std::ostream& output, const std::deque<Bus>& busses, const RenderSettings* settings) {
     using namespace std::literals;
     SetUpSettings(*settings);
     std::vector<std::pair<std::string, const Bus*>> sorted_routes;
@@ -261,7 +261,7 @@ void Render::AddStopLabel(const std::string& data, svg::Point position) {
     doc_.Add(name);
 }
 
-void Render::SetUpSettings(RenderSettings& settings) {
+void Render::SetUpSettings(const RenderSettings& settings) {
     settings_ = &settings;
 }
 

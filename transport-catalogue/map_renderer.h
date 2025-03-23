@@ -82,9 +82,9 @@ private:
     double zoom_coeff_ = 0;
 };
 
-class Render : public DrawMapInterface {
+class Render {
 public:
-    void DrawMap(std::ostream& output, const std::deque<Bus>& busses, RenderSettings* settings) override;
+    void DrawMap(std::ostream& output, const std::deque<Bus>& busses, const RenderSettings* settings);
     void DrawRoute(const Bus& bus, svg::Color color, const SphereProjector& proj);
     void DrawRouteLabel(const Bus& bus, svg::Color color, const SphereProjector& proj);
     void DrawStops(const Bus& bus, const SphereProjector& proj);
@@ -95,7 +95,7 @@ public:
     void AddRouteLabel(const std::string& data, svg::Point position, svg::Color color);
     void AddStopLabel(const std::string& data, svg::Point position);
 private:
-    void SetUpSettings(RenderSettings& settings);
+    void SetUpSettings(const RenderSettings& settings);
     RenderSettings const* settings_;
     svg::Document doc_;
 };

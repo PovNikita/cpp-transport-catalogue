@@ -286,35 +286,6 @@ Node LoadNode(istream& input) {
 
 }  // namespace
 
-Node::Node(Array array)
-    : node_(move(array)) {
-}
-
-Node::Node(Dict map)
-    : node_(move(map)) {
-}
-
-Node::Node(int value)
-    : node_(value) {
-}
-
-Node::Node(string value)
-    : node_(move(value)) {
-}
-
-Node::Node(double value)
-    : node_(value) {
-}
-
-Node::Node(bool value)
-    : node_(value) {
-}
-
-Node::Node(std::nullptr_t value)
-    : node_(value) {
-
-}
-
 bool Node::IsInt() const {
     return std::holds_alternative<int>(node_);
 }
@@ -479,7 +450,7 @@ bool operator!=(const Node& lhs, const Node& rhs) {
     return lhs.GetNode() != rhs.GetNode();
 }
 
-const Node_var& Node::GetNode() const
+const NodeVar& Node::GetNode() const
 {
     return node_;
 }
