@@ -12,6 +12,8 @@
 #include "transport_catalogue.h"
 #include "svg.h"
 #include "map_renderer.h"
+#include "json_builder.h"
+#include "domain.h"
 
 class ReadCommandDescription {
 public:
@@ -40,13 +42,13 @@ public:
 
 class InputReader : public InputInterface {
 public:
-    void FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, RenderSettings* settings) override;
+    void FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings* settings) override;
     void FormRequsts(std::istream& input, std::queue<RequestDescription>& requests) override;
 private:
     void ReadJson(std::istream& input);
     void ParseJsonInputRequests();
     void ParseJsonStatRequests(std::queue<RequestDescription>& requests);
-    void ParseJsonRenderSettings(RenderSettings* settings);
+    void ParseJsonRenderSettings(map_render::RenderSettings* settings);
     void ApplyCommands(transport_catalogue::TransportCatalogue& catalogue) const;
 
     std::vector<std::unique_ptr<ReadCommandDescription>> stop_comands_;
@@ -95,8 +97,9 @@ public:
 class StatAnswer : public OutputInterface {
 public:
     void HandleRequests(std::ostream& output, std::queue<RequestDescription>& requsts, 
-                        const transport_catalogue::TransportCatalogue& catalogue, RenderSettings& render_settings) override;
+                        const transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings& render_settings) override;
 private:
     void AddAnswerToArr(AnswerDescription* answer);
+    json::Builder builder_{};
     json::Array arr_;
 };

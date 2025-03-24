@@ -1,10 +1,7 @@
 #include "json_reader.h"
-#include "domain.h"
-#include "map_renderer.h"
-#include "svg.h"
 #include <sstream>
 
-void InputReader::FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, RenderSettings* settings) {
+void InputReader::FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings* settings) {
     ReadJson(input);
     ParseJsonInputRequests();
     ParseJsonRenderSettings(settings);
@@ -118,7 +115,7 @@ svg::Color ConvertNodeToColor(const json::Node& node)
     }
 }
 
-void InputReader::ParseJsonRenderSettings(RenderSettings* settings) {
+void InputReader::ParseJsonRenderSettings(map_render::RenderSettings* settings) {
     using namespace std::literals;
     auto&& render_set = doc_->GetRoot().AsMap().find("render_settings"s);
     if(render_set->second.IsMap()) {
@@ -171,9 +168,10 @@ void InputReader::ApplyCommands(transport_catalogue::TransportCatalogue& catalog
     }
 }
 
-void StatAnswer::HandleRequests(std::ostream& output, std::queue<RequestDescription>& requsts, const transport_catalogue::TransportCatalogue& catalogue, RenderSettings& render_settings) {
+void StatAnswer::HandleRequests(std::ostream& output, std::queue<RequestDescription>& requsts, const transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings& render_settings) {
     using namespace std::literals;
     using namespace json;
+    builder_.StartArray();
     arr_.reserve(requsts.size());
     while(!requsts.empty())
     {
@@ -223,7 +221,8 @@ void StatAnswer::HandleRequests(std::ostream& output, std::queue<RequestDescript
         }
         requsts.pop();
     }
-    json::Print(json::Document{arr_}, output);
+    builder_.EndArray();
+    json::Print(json::Document{builder_.Build()}, output);
 }
 
 void StatAnswer::AddAnswerToArr(AnswerDescription* answer) {
@@ -231,38 +230,38 @@ void StatAnswer::AddAnswerToArr(AnswerDescription* answer) {
     using namespace json;
     if(answer->type_ == "Bus"s)
     {
-        Dict dict;
-        dict["curvature"s] = static_cast<AnswerBus*>(answer)->rourte_info_.curvature;
-        dict["request_id"s] = answer->request_id_;
-        dict["route_length"s] = static_cast<AnswerBus*>(answer)->rourte_info_.route_length_;
-        dict["stop_count"s] = static_cast<int>(static_cast<AnswerBus*>(answer)->rourte_info_.number_of_stops_);
-        dict["unique_stop_count"s] = static_cast<int>(static_cast<AnswerBus*>(answer)->rourte_info_.number_of_uniq_stops_);
-        arr_.push_back(dict);
+        builder_.StartDict()
+                .Key("curvature"s).Value(static_cast<AnswerBus*>(answer)->rourte_info_.curvature)
+                .Key("request_id"s).Value(answer->request_id_)
+                .Key("route_length"s).Value(static_cast<AnswerBus*>(answer)->rourte_info_.route_length_)
+                .Key("stop_count"s).Value(static_cast<int>(static_cast<AnswerBus*>(answer)->rourte_info_.number_of_stops_))
+                .Key("unique_stop_count"s).Value(static_cast<int>(static_cast<AnswerBus*>(answer)->rourte_info_.number_of_uniq_stops_))
+                .EndDict();
     }
     else if (answer->type_ == "Stop"s)
     {
-        Array bus_names;
+        builder_.StartDict()
+                .Key("buses"s).StartArray();
         for(auto name_ : static_cast<AnswerStop*>(answer)->stop_info_.route_names_)
         {
-            bus_names.push_back(Node(std::string(name_)));
+            builder_.Value(std::string(name_));
         }
-        Dict dict;
-        dict["buses"s] = bus_names;
-        dict["request_id"] = answer->request_id_;
-        arr_.push_back(dict);
+        builder_.EndArray()
+                .Key("request_id"s).Value(answer->request_id_)
+                .EndDict();
     }
     else if (answer->type_ == "Map"s)
     {
-        Dict dict;
-        dict["map"s] = static_cast<AnswerMap*>(answer)->svg_;
-        dict["request_id"] = answer->request_id_;
-        arr_.push_back(dict);
+        builder_.StartDict()
+                .Key("map"s).Value(static_cast<AnswerMap*>(answer)->svg_)
+                .Key("request_id").Value(answer->request_id_)
+                .EndDict();
     }
     else
     {
-        Dict dict;
-        dict["request_id"s] = answer->request_id_;
-        dict["error_message"s] = static_cast<AnswerError*>(answer)->error_message_;
-        arr_.push_back(dict);
+        builder_.StartDict()
+                .Key("request_id"s).Value(answer->request_id_)
+                .Key("error_message"s).Value(static_cast<AnswerError*>(answer)->error_message_)
+                .EndDict();
     }
 }

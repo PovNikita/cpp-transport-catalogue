@@ -1,5 +1,4 @@
 #include "request_handler.h"
-#include "json_reader.h"
 
 
 void Handler::FormCatalogueFromJson(std::istream& input, InputInterface* interface) {

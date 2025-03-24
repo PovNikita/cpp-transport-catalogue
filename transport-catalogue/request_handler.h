@@ -5,6 +5,7 @@
 #include <string>
 
 #include "transport_catalogue.h"
+#include "map_renderer.h"
 #include "svg.h"
 
 class RequestDescription {
@@ -16,42 +17,16 @@ public:
     virtual ~RequestDescription() = default;
 };
 
-class RenderSettings
-{
-public:
-    //canvas settings
-    double width_ = 0.0;
-    double height_ = 0.0;
-    double padding_ = 0.0;
-
-    //stop srttings
-    double stop_radius_ = 0.0;
-    size_t stop_label_font_size_ = 0;
-    std::vector<double> stop_label_offset_;
-
-    // routes settings
-    size_t bus_label_font_size_ = 0;
-    std::vector<double> bus_label_offset_;
-    double line_width_ = 0.0;
-
-    //underlayer settings
-    svg::Color underlayer_color_;
-    double underlayer_width_ = 0.0;
-
-    //other settings
-    std::vector<svg::Color> color_palette_;
-};
-
 class InputInterface {
 public:
-    virtual void FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, RenderSettings *settings) = 0;
+    virtual void FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings *settings) = 0;
     virtual void FormRequsts(std::istream& input, std::queue<RequestDescription>& requsts) = 0;
     virtual ~InputInterface() = default;
 };
     
 class OutputInterface {
 public:
-    virtual void HandleRequests(std::ostream& output, std::queue<RequestDescription>& requsts, const transport_catalogue::TransportCatalogue& catalogue, RenderSettings& render_settings) = 0;
+    virtual void HandleRequests(std::ostream& output, std::queue<RequestDescription>& requsts, const transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings& render_settings) = 0;
     virtual ~OutputInterface() = default;
 };
 
@@ -63,5 +38,5 @@ public:
 private:
     transport_catalogue::TransportCatalogue catalogue_;
     std::queue<RequestDescription> requests_;
-    RenderSettings render_settings_;
+    map_render::RenderSettings render_settings_;
 };

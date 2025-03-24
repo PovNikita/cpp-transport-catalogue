@@ -455,6 +455,11 @@ const NodeVar& Node::GetNode() const
     return node_;
 }
 
+NodeVar& Node::GetValue()
+{
+    return node_;
+}
+
 Document::Document(Node root)
     : root_(move(root)) {
 }

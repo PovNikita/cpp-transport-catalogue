@@ -22,9 +22,12 @@ using NodeVar = std::variant<std::nullptr_t, int, double, std::string, bool, Arr
 
 class Node {
 public:
+    using Value = NodeVar;
+
     template<typename T>
     Node(T node) : node_(std::move(node)) {}
     Node() = default;
+    
     
     bool IsInt() const;
     bool IsDouble() const;
@@ -43,6 +46,8 @@ public:
     const std::string& AsString() const;
 
     const NodeVar& GetNode() const;
+
+    NodeVar& GetValue();
 
 private:
     NodeVar node_;

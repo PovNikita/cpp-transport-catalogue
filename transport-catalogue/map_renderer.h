@@ -8,9 +8,35 @@
 #include "svg.h"
 #include "geo.h"
 #include "domain.h"
-#include "request_handler.h"
 
 namespace map_render {
+
+class RenderSettings
+{
+public:
+    //canvas settings
+    double width_ = 0.0;
+    double height_ = 0.0;
+    double padding_ = 0.0;
+
+    //stop srttings
+    double stop_radius_ = 0.0;
+    size_t stop_label_font_size_ = 0;
+    std::vector<double> stop_label_offset_;
+
+    // routes settings
+    size_t bus_label_font_size_ = 0;
+    std::vector<double> bus_label_offset_;
+    double line_width_ = 0.0;
+
+    //underlayer settings
+    svg::Color underlayer_color_;
+    double underlayer_width_ = 0.0;
+
+    //other settings
+    std::vector<svg::Color> color_palette_;
+};
+
 
 class SphereProjector {
 public:
