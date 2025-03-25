@@ -7,7 +7,7 @@ using namespace std::literals;
 namespace json
 {
 
-KeyItemContext Builder::Key(std::string str) {
+Builder::KeyItemContext Builder::Key(std::string str) {
     if(nodes_stack_.empty())
     {
         throw std::logic_error("Incorrect usage of Key method"s);
@@ -15,7 +15,7 @@ KeyItemContext Builder::Key(std::string str) {
     auto& curr_value = nodes_stack_.back()->GetValue();
     if(std::holds_alternative<Dict>(curr_value) && key_value_ == nullptr)
     {
-        auto [iterator, is_success] = std::get<Dict>(curr_value).emplace(str, Node());
+        auto [iterator, is_success] = std::get<Dict>(curr_value).emplace(std::move(str), Node());
         key_value_ = &(iterator->second);
     }
     else
@@ -25,7 +25,11 @@ KeyItemContext Builder::Key(std::string str) {
     return KeyItemContext(*this);
 }
 
-Builder& Builder::Value(Node::Value value, bool is_start_map_array) {
+Builder& Builder::Value(Node::Value value) {
+    return ValueBase(value, false);
+}
+
+Builder& Builder::ValueBase(Node::Value& value, bool is_start_map_array) {
     if(nodes_stack_.empty())
     {
         throw std::logic_error("Incorrect usage of Value method"s);
@@ -33,8 +37,8 @@ Builder& Builder::Value(Node::Value value, bool is_start_map_array) {
     auto& curr_value = nodes_stack_.back()->GetValue();
     if(std::holds_alternative<Dict>(curr_value) && key_value_ != nullptr)
     {
-        key_value_->GetValue() = value;
-        if(std::holds_alternative<Dict>(value) || std::holds_alternative<Array>(value))
+        key_value_->GetValue() = std::move(value);
+        if(std::holds_alternative<Dict>(key_value_->GetValue()) || std::holds_alternative<Array>(key_value_->GetValue()))
         {
             nodes_stack_.push_back(key_value_);
         }
@@ -44,14 +48,14 @@ Builder& Builder::Value(Node::Value value, bool is_start_map_array) {
     {
         auto& node = std::get<Array>(curr_value);
         node.emplace_back(std::move(value));
-        if(std::holds_alternative<Dict>(value) || std::holds_alternative<Array>(value))
+        if(std::holds_alternative<Dict>(node.back().GetValue()) || std::holds_alternative<Array>(node.back().GetValue()))
         {
             nodes_stack_.push_back(&node.back());
         }
     }
     else if(std::holds_alternative<std::nullptr_t>(curr_value))
     {
-        curr_value = value;
+        curr_value = std::move(value);
         if(is_start_map_array == false)
         {
             nodes_stack_.pop_back();
@@ -64,12 +68,14 @@ Builder& Builder::Value(Node::Value value, bool is_start_map_array) {
     return *this;
 }
 
-DictItemContext Builder::StartDict() {
-    return DictItemContext(Value(Dict{}, true));
+Builder::DictItemContext Builder::StartDict() {
+    NodeVar node(Dict{});
+    return DictItemContext(ValueBase(node, true));
 }
 
-ArrayItemContext Builder::StartArray() {
-    return ArrayItemContext(Value(Array{}, true));
+Builder::ArrayItemContext Builder::StartArray() {
+    NodeVar node(Array{});
+    return ArrayItemContext(ValueBase(node, true));
 }
 
 Builder& Builder::EndDict() {
@@ -111,58 +117,54 @@ Node Builder::Build() {
     {
         throw std::logic_error("Incorrect usage of Build method"s);
     }
-    /*if(root_.GetValue().index() == 0)
-    {
-        throw std::logic_error("Incorrect usage of Build method"s);
-    }*/
     else
     {
         return root_;
     }
 }
 
-    Node BaseContext::Build()
-    {
-        return builder_.Build();
-    }
-    KeyItemContext BaseContext::Key(std::string str)
-    {
-        return builder_.Key(str);
-    }
-    Builder& BaseContext::Value(Node::Value value)
-    {
-        return (builder_.Value(value));
-    }
-    DictItemContext BaseContext::StartDict()
-    {
-        return builder_.StartDict();
-    }
-    ArrayItemContext BaseContext::StartArray()
-    {
-        return builder_.StartArray();
-    }
-    Builder& BaseContext::EndDict()
-    {
-        return builder_.EndDict();
-    }
-    Builder& BaseContext::EndArray()
-    {
-        return builder_.EndArray();
-    }
+Node Builder::BaseContext::Build()
+{
+    return builder_.Build();
+}
+Builder::KeyItemContext Builder::BaseContext::Key(std::string str)
+{
+    return builder_.Key(std::move(str));
+}
+Builder& Builder::BaseContext::Value(Node::Value value)
+{
+    return (builder_.Value(std::move(value)));
+}
+Builder::DictItemContext Builder::BaseContext::StartDict()
+{
+    return builder_.StartDict();
+}
+Builder::ArrayItemContext Builder::BaseContext::StartArray()
+{
+    return builder_.StartArray();
+}
+Builder& Builder::BaseContext::EndDict()
+{
+    return builder_.EndDict();
+}
+Builder& Builder::BaseContext::EndArray()
+{
+    return builder_.EndArray();
+}
 
-    Builder& BaseContext::GetBuilderRef()
-    {
-        return builder_;
-    }
+Builder& Builder::BaseContext::GetBuilderRef()
+{
+    return builder_;
+}
 
-    DictItemContext KeyItemContext::Value(Node::Value value)
-    {
-        return DictItemContext(GetBuilderRef().Value(value));
-    }
+Builder::DictItemContext Builder::KeyItemContext::Value(Node::Value value)
+{
+    return DictItemContext(GetBuilderRef().Value(std::move(value)));
+}
 
-    ArrayItemContext ArrayItemContext::Value(Node::Value value)
-    {
-        return ArrayItemContext(GetBuilderRef().Value(value));
-    }
+Builder::ArrayItemContext Builder::ArrayItemContext::Value(Node::Value value)
+{
+    return ArrayItemContext(GetBuilderRef().Value(std::move(value)));
+}
 
 } // namespace json

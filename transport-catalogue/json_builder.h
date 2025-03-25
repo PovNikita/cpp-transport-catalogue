@@ -1,22 +1,23 @@
 #pragma once
 
 #include "json.h"
-
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace json
 {
 
-class KeyItemContext;
-class ValueItemContext;
-class DictItemContext;
-class ArrayItemContext;
-
 class Builder {
 public:
+
+    class BaseContext;
+    class KeyItemContext;
+    class ValueItemContext;
+    class DictItemContext;
+    class ArrayItemContext;
+
     KeyItemContext Key(std::string str);
-    Builder& Value(NodeVar value, bool is_start_map_array = false);
+    Builder& Value(Node::Value value);
     DictItemContext StartDict();
     ArrayItemContext StartArray();
     Builder& EndDict();
@@ -27,9 +28,10 @@ private:
     Node root_;
     std::vector<Node*> nodes_stack_ {&root_};
     Node* key_value_ = nullptr;
+    Builder& ValueBase(Node::Value& value, bool is_start_map_array = false);
 };
 
-class BaseContext
+class Builder::BaseContext
 {
 public:
     BaseContext(Builder& builder) : builder_(builder) {}
@@ -46,7 +48,7 @@ private:
     Builder& builder_;
 };
 
-class KeyItemContext : public BaseContext
+class Builder::KeyItemContext : public BaseContext
 {
 public:
     KeyItemContext(Builder& builder) : BaseContext(builder) {} 
@@ -57,7 +59,7 @@ public:
     Node Build() = delete;
 };
 
-class ValueItemContext : public BaseContext
+class Builder::ValueItemContext : public BaseContext
 {
 public:
     ValueItemContext(Builder& builder) : BaseContext(builder) {} 
@@ -68,7 +70,7 @@ public:
 
 };
 
-class DictItemContext : public BaseContext
+class Builder::DictItemContext : public BaseContext
 {
 public:
     DictItemContext(Builder& builder) : BaseContext(builder) {}
@@ -80,7 +82,7 @@ public:
 private:
 };
 
-class ArrayItemContext : public BaseContext
+class Builder::ArrayItemContext : public BaseContext
 {
 public:
     ArrayItemContext(Builder& builder) : BaseContext(builder) {}
