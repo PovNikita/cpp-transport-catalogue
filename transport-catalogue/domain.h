@@ -61,3 +61,9 @@ struct StopInfo
 {
     std::vector<std::string_view> route_names_;
 };
+
+struct RouteSettings
+{
+    int bus_wait_time_ = 0;
+    double bus_velocity_ = 0.0;
+};

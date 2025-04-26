@@ -12,3 +12,9 @@ void Handler::FormRequestsFromJson(std::istream& input, InputInterface* interfac
 void Handler::HandleRequestsJson(std::ostream& output, OutputInterface* interface) {
     interface->HandleRequests(output, requests_, catalogue_, render_settings_);
 }
+
+void Handler::DrawMap(std::ostream& output)
+{
+    map_render::Render render;
+    render.DrawMap(output, catalogue_.GetAllRoutes(), &render_settings_);    
+}
