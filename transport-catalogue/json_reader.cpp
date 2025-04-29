@@ -1,12 +1,13 @@
 #include "json_reader.h"
 #include <sstream>
 
-void InputReader::FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings* settings) {
+void InputReader::FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, 
+                                map_render::RenderSettings* settings, transport_router::Router& router) {
     ReadJson(input);
     ParseJsonInputRequests();
     ParseJsonRenderSettings(settings);
-    ParseJsonRouterSettings(catalogue);
-    ApplyCommands(catalogue);
+    ParseJsonRouterSettings(router);
+    ApplyCommands(catalogue, router);
 }
 
 void InputReader::FormRequsts(std::istream& input, std::queue<std::unique_ptr<RequestDescription>>& requests) {
@@ -165,7 +166,7 @@ void InputReader::ParseJsonRenderSettings(map_render::RenderSettings* settings) 
     }
 }
 
-void InputReader::ParseJsonRouterSettings(transport_catalogue::TransportCatalogue& catalogue)
+void InputReader::ParseJsonRouterSettings(transport_router::Router& router)
 {
     using namespace std::literals;
     auto&& render_set = doc_->GetRoot().AsMap().find("routing_settings"s);
@@ -173,11 +174,11 @@ void InputReader::ParseJsonRouterSettings(transport_catalogue::TransportCatalogu
         auto& req_dict = render_set->second;
         int bus_wait_time = req_dict.AsMap().at("bus_wait_time"s).AsInt();
         double bus_velocity = req_dict.AsMap().at("bus_velocity"s).AsDouble();
-        catalogue.SetRouteSettings(bus_wait_time, bus_velocity);
+        router.SetRouteSettings(bus_wait_time, bus_velocity);
     }
 }
 
-void InputReader::ApplyCommands(transport_catalogue::TransportCatalogue& catalogue) const {
+void InputReader::ApplyCommands(transport_catalogue::TransportCatalogue& catalogue, transport_router::Router& router) const {
     using namespace transport_catalogue;
     for(auto& command : stop_comands_)
     {
@@ -196,12 +197,13 @@ void InputReader::ApplyCommands(transport_catalogue::TransportCatalogue& catalog
                                                 static_cast<BusReadCommand*>(bus_comand.get())->stops_.end(),
                                                 static_cast<BusReadCommand*>(bus_comand.get())->is_round_trip);
     }
-    catalogue.FormGraph();
+    router.FormGraph(catalogue);
 
 }
 
 void StatAnswer::HandleRequests(std::ostream& output, std::queue<std::unique_ptr<RequestDescription>>& requests, 
-                                const transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings& render_settings) {
+                                const transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings& render_settings,
+                                const transport_router::Router& router) {
     using namespace std::literals;
     using namespace json;
     builder_.StartArray();
@@ -257,7 +259,7 @@ void StatAnswer::HandleRequests(std::ostream& output, std::queue<std::unique_ptr
         else if(requests.front()->type_ == "Route"s)
         {
             auto req_ptr = dynamic_cast<RouteRequestDescription*>(requests.front().get());
-            auto router_info = catalogue.BuildRoute(req_ptr->from, req_ptr->to);
+            auto router_info = router.BuildRoute(req_ptr->from, req_ptr->to);
             if(!router_info)
             {
                 AnswerError ans_error("not found"s);
@@ -273,18 +275,18 @@ void StatAnswer::HandleRequests(std::ostream& output, std::queue<std::unique_ptr
                 {
                     for(size_t i = 0; i < router_info.value().edges.size(); ++i)
                     {
-                        if(catalogue.GetEdgeType(router_info.value().edges.at(i))->type_ == "wait")
+                        if(router.GetEdgeType(router_info.value().edges.at(i))->type_ == "wait")
                         {
                             WaitRouteItem route_item;
-                            auto wait_edge = *static_cast<const transport_catalogue::WaitEdgeType*>(catalogue.GetEdgeType(router_info.value().edges.at(i)));
+                            auto wait_edge = *static_cast<const transport_router::WaitEdgeType*>(router.GetEdgeType(router_info.value().edges.at(i)));
                             route_item.stop_name_ = wait_edge.stop_name_;
-                            route_item.time_ = catalogue.GetRouteSettings().bus_wait_time_;
+                            route_item.time_ = router.GetRouteSettings().bus_wait_time_;
                             ans_route.items_.push_back(std::make_unique<WaitRouteItem>(route_item));
                         }
                         else
                         {
                             BusRouteItem route_item;
-                            auto bus_edge = *static_cast<const transport_catalogue::BusEdgeType*>(catalogue.GetEdgeType(router_info.value().edges.at(i)));
+                            auto bus_edge = *static_cast<const transport_router::BusEdgeType*>(router.GetEdgeType(router_info.value().edges.at(i)));
                             route_item.bus_ = bus_edge.bus_name_;
                             route_item.span_count_ = bus_edge.span_count_;
                             route_item.time_ = bus_edge.time_;

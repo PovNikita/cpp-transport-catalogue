@@ -10,6 +10,7 @@
 #include "request_handler.h"
 #include "geo.h"
 #include "transport_catalogue.h"
+#include "transport_router.h"
 #include "svg.h"
 #include "map_renderer.h"
 #include "json_builder.h"
@@ -59,15 +60,16 @@ public:
 
 class InputReader : public InputInterface {
 public:
-    void FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings* settings) override;
+    void FormCatalogue(std::istream& input, transport_catalogue::TransportCatalogue& catalogue, 
+                        map_render::RenderSettings* settings, transport_router::Router& router) override;
     void FormRequsts(std::istream& input, std::queue<std::unique_ptr<RequestDescription>>& requests) override;
 private:
     void ReadJson(std::istream& input);
     void ParseJsonInputRequests();
     void ParseJsonStatRequests(std::queue<std::unique_ptr<RequestDescription>>& requests);
     void ParseJsonRenderSettings(map_render::RenderSettings* settings);
-    void ParseJsonRouterSettings(transport_catalogue::TransportCatalogue& catalogue);
-    void ApplyCommands(transport_catalogue::TransportCatalogue& catalogue) const;
+    void ParseJsonRouterSettings(transport_router::Router& router_);
+    void ApplyCommands(transport_catalogue::TransportCatalogue& catalogue, transport_router::Router& router) const;
 
     std::vector<std::unique_ptr<ReadCommandDescription>> stop_comands_;
     std::vector<std::unique_ptr<ReadCommandDescription>> bus_comands_;
@@ -146,7 +148,8 @@ public:
 class StatAnswer : public OutputInterface {
 public:
     void HandleRequests(std::ostream& output, std::queue<std::unique_ptr<RequestDescription>>& requests, 
-                        const transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings& render_settings) override;
+                        const transport_catalogue::TransportCatalogue& catalogue, map_render::RenderSettings& render_settings,
+                        const transport_router::Router& router) override;
 private:
     void AddAnswerToArr(AnswerDescription* answer);
     json::Builder builder_{};

@@ -2,7 +2,7 @@
 
 
 void Handler::FormCatalogueFromJson(std::istream& input, InputInterface* interface) {
-    interface->FormCatalogue(input, catalogue_, &render_settings_);
+    interface->FormCatalogue(input, catalogue_, &render_settings_, router_);
 }
 
 void Handler::FormRequestsFromJson(std::istream& input, InputInterface* interface) {
@@ -10,7 +10,7 @@ void Handler::FormRequestsFromJson(std::istream& input, InputInterface* interfac
 }
 
 void Handler::HandleRequestsJson(std::ostream& output, OutputInterface* interface) {
-    interface->HandleRequests(output, requests_, catalogue_, render_settings_);
+    interface->HandleRequests(output, requests_, catalogue_, render_settings_, router_);
 }
 
 void Handler::DrawMap(std::ostream& output)
