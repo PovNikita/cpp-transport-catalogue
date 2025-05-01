@@ -25,7 +25,45 @@ namespace transport_router
         return *graph_.get();
     }
 
-    std::optional<graph::Router<double>::RouteInfo> Router::BuildRoute(std::string_view start_stop, std::string_view end_stop) const {
+    std::optional<BuildedRoute> Router::BuildRoute(std::string_view start_stop, std::string_view end_stop) const
+    {
+        auto router_info = BuildRouteImpl(start_stop, end_stop);
+        if(!router_info)
+        {
+            return std::nullopt;
+        }
+        else
+        {
+            BuildedRoute route;
+            route.total_weight_ = router_info.value().weight;
+            if(!router_info.value().edges.empty())
+            {
+                for(size_t i = 0; i < router_info.value().edges.size(); ++i)
+                {
+                    if(std::holds_alternative<transport_router::WaitEdgeType>(GetEdgeType(router_info.value().edges.at(i))))
+                    {
+                        WaitRouteItem route_item;
+                        auto wait_edge = std::get<transport_router::WaitEdgeType>(GetEdgeType(router_info.value().edges.at(i)));
+                        route_item.stop_name_ = wait_edge.stop_name_;
+                        route_item.time_ = GetRouteSettings().bus_wait_time_;
+                        route.items_.push_back(std::make_unique<WaitRouteItem>(route_item));
+                    }
+                    else
+                    {
+                        BusRouteItem route_item;
+                        auto bus_edge = std::get<transport_router::BusEdgeType>(GetEdgeType(router_info.value().edges.at(i)));
+                        route_item.bus_ = bus_edge.bus_name_;
+                        route_item.span_count_ = bus_edge.span_count_;
+                        route_item.time_ = bus_edge.time_;
+                        route.items_.push_back(std::make_unique<BusRouteItem>(route_item));
+                    }
+                }
+            }
+            return route;
+        }
+    }
+
+    std::optional<graph::Router<double>::RouteInfo> Router::BuildRouteImpl(std::string_view start_stop, std::string_view end_stop) const {
         using namespace graph;
         if(start_stop == end_stop)
         {
@@ -36,10 +74,10 @@ namespace transport_router
         return (*router_.get()).BuildRoute(stopname_to_vertex_id_.at(start_stop).first, stopname_to_vertex_id_.at(end_stop).first);
     }
 
-    const EdgeType* Router::GetEdgeType(graph::EdgeId id) const
+    const EdgeType& Router::GetEdgeType(graph::EdgeId id) const
     {
         using namespace graph;
-        return edge_id_type_.at(id).get();
+        return edge_id_type_.at(id);
     }
 
     const std::string_view Router::GetStopNameByVertexId(graph::VertexId id) const
@@ -59,7 +97,7 @@ namespace transport_router
         for(const auto& stop : transp_catalogue_->GetAllStops())
         {
             Edge edge{vertex_id_, vertex_id_ + 1, static_cast<double>(route_settings_.bus_wait_time_)};
-            edge_id_type_.insert({(*graph_.get()).AddEdge(edge), std::make_unique<WaitEdgeType>(stop.stop_name_)});
+            edge_id_type_.insert({(*graph_.get()).AddEdge(edge), WaitEdgeType(stop.stop_name_)});
             stopname_to_vertex_id_.insert({stop.stop_name_, std::make_pair(vertex_id_, vertex_id_ + 1)});
             vertex_id_stop_.insert({vertex_id_, stop});
             vertex_id_ += 2;
@@ -83,7 +121,7 @@ namespace transport_router
                     Edge edge{stopname_to_vertex_id_.at(stop_from.stop_name_).second, 
                                 stopname_to_vertex_id_.at(stop_to.stop_name_).first, 
                                 time};
-                    edge_id_type_.insert({(*graph_.get()).AddEdge(edge), std::make_unique<BusEdgeType>(bus.bus_name_, j - i, time)});
+                    edge_id_type_.insert({(*graph_.get()).AddEdge(edge), BusEdgeType(bus.bus_name_, j - i, time)});
                 }
             }
         }

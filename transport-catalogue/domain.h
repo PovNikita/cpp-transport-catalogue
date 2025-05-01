@@ -67,3 +67,26 @@ struct RouteSettings
     int bus_wait_time_ = 0;
     double bus_velocity_ = 0.0;
 };
+
+class RouteItem {
+    public:
+        explicit RouteItem(std::string type) : type_(type) {}
+    
+        std::string type_;
+        virtual ~RouteItem() = default;
+};
+    
+class WaitRouteItem : public RouteItem {
+    public:
+        WaitRouteItem() : RouteItem("Wait") {}
+        std::string stop_name_;
+        int time_;
+};
+
+class BusRouteItem : public RouteItem {
+    public:
+        BusRouteItem() : RouteItem("Bus") {}
+        std::string bus_;
+        int span_count_ = 0;
+        double time_ = 0;
+};

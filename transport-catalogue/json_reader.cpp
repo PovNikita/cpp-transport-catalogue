@@ -270,30 +270,8 @@ void StatAnswer::HandleRequests(std::ostream& output, std::queue<std::unique_ptr
             {
                 AnswerRoute ans_route;
                 ans_route.request_id_ = requests.front()->id_;
-                ans_route.total_time_ = router_info.value().weight;
-                if(!router_info.value().edges.empty())
-                {
-                    for(size_t i = 0; i < router_info.value().edges.size(); ++i)
-                    {
-                        if(router.GetEdgeType(router_info.value().edges.at(i))->type_ == "wait")
-                        {
-                            WaitRouteItem route_item;
-                            auto wait_edge = *static_cast<const transport_router::WaitEdgeType*>(router.GetEdgeType(router_info.value().edges.at(i)));
-                            route_item.stop_name_ = wait_edge.stop_name_;
-                            route_item.time_ = router.GetRouteSettings().bus_wait_time_;
-                            ans_route.items_.push_back(std::make_unique<WaitRouteItem>(route_item));
-                        }
-                        else
-                        {
-                            BusRouteItem route_item;
-                            auto bus_edge = *static_cast<const transport_router::BusEdgeType*>(router.GetEdgeType(router_info.value().edges.at(i)));
-                            route_item.bus_ = bus_edge.bus_name_;
-                            route_item.span_count_ = bus_edge.span_count_;
-                            route_item.time_ = bus_edge.time_;
-                            ans_route.items_.push_back(std::make_unique<BusRouteItem>(route_item));
-                        }
-                    }
-                }
+                ans_route.total_time_ = router_info.value().total_weight_;
+                ans_route.items_ = std::move(router_info.value().items_);
                 AddAnswerToArr(&ans_route);
             }
         }
